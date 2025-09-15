@@ -8,3 +8,4 @@ rich==13.7.0
 pytz==2023.3
 gunicorn==21.2.0
 eventlet==0.33.3
+google-generativeai==25.2
