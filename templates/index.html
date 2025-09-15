@@ -280,7 +280,7 @@
             setupWebSocket();
             loadInitialData();
             startUptimeCounter();
-            setupAddAccountForm(); // <-- PANGGIL FUNGSI BARU
+            setupAddAccountForm(); 
         });
 
         // Initialize application
@@ -383,7 +383,7 @@
                     loadRecentLogs();
                     break;
                 case 'accounts':
-                    refreshStatus(); // Diubah agar selalu refresh status sebelum load accounts
+                    refreshStatus(); 
                     break;
                 case 'logs':
                     loadLogs();
@@ -406,7 +406,7 @@
                     updateDashboardStats(data);
                     updateHeaderStats(data);
                     updateSystemStatus('online');
-                    // Tambahkan pemanggilan loadAccounts di sini
+                    
                     if (currentTab === 'accounts') {
                         loadAccounts();
                     }
@@ -452,7 +452,7 @@
         function loadAccounts() {
             if (!statusData.accounts) {
                 console.log("Status data not ready, refreshing...");
-                refreshStatus(); // Jika statusData belum ada, panggil refresh dulu
+                refreshStatus(); 
                 return;
             }
 
@@ -491,7 +491,7 @@
             return card;
         }
 
-        // Log functions (KODE ASLI ANDA DIPERTAHANKAN)
+        // Log functions 
         function loadLogs() {
             fetch('/api/logs?limit=100')
                 .then(response => response.json())
@@ -585,7 +585,7 @@
             showNotification('Logs refreshed', 'success');
         }
 
-        // Config & Messages functions (KODE ASLI ANDA DIPERTAHANKAN)
+        // Config & Messages functions 
         function loadConfig() {
             fetch('/api/config').then(res => res.json()).then(config => {
                 document.getElementById('config-editor').value = JSON.stringify(config, null, 2);
@@ -648,7 +648,7 @@
             }).catch(err => { hideLoading(); showNotification('Error saving messages', 'error'); });
         }
 
-        // System control functions (KODE ASLI ANDA DIPERTAHANKAN)
+        // System control functions 
         function restartBot() {
             if (!confirm('Are you sure you want to restart the bot?')) return;
             showLoading();
@@ -665,7 +665,7 @@
             showNotification('Logs cleared', 'info');
         }
 
-        // Utility functions (KODE ASLI ANDA DIPERTAHANKAN)
+        // Utility functions 
         function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
         function showNotification(message, type = 'info') {
@@ -699,7 +699,7 @@
              const seconds = totalSeconds % 60;
              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
-        // ▲▲▲ AKHIR DARI PERBAIKAN ▲▲▲
+      
 
         // Auto-refresh status every 30 seconds
         setInterval(refreshStatus, 30000);
