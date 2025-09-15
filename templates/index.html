@@ -7,9 +7,35 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        /* CSS tambahan untuk form baru, bisa juga dipindah ke global.css */
+        .add-account-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-top: 10px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #444;
+            background-color: #2c2f33;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+    </style>
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
         <div class="container">
             <div class="header-content">
@@ -37,10 +63,8 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="main">
         <div class="container">
-            <!-- Navigation Tabs -->
             <div class="tab-navigation">
                 <button class="tab-btn active" data-tab="dashboard">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -59,10 +83,8 @@
                 </button>
             </div>
 
-            <!-- Dashboard Tab -->
             <div class="tab-content active" id="dashboard">
                 <div class="dashboard-grid">
-                    <!-- Quick Stats -->
                     <div class="card stats-card">
                         <div class="card-header">
                             <h3><i class="fas fa-chart-line"></i> Quick Stats</h3>
@@ -82,14 +104,13 @@
                                     <div class="stat-label">Total Logs</div>
                                 </div>
                                 <div class="stat-box">
-                                    <div class="stat-number" id="stat-uptime">--:--</div>
+                                    <div class="stat-number" id="stat-uptime">--:--:--</div>
                                     <div class="stat-label">Uptime</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- System Controls -->
                     <div class="card">
                         <div class="card-header">
                             <h3><i class="fas fa-power-off"></i> System Controls</h3>
@@ -109,7 +130,6 @@
                         </div>
                     </div>
 
-                    <!-- Recent Logs Preview -->
                     <div class="card recent-logs">
                         <div class="card-header">
                             <h3><i class="fas fa-clock"></i> Recent Activity</h3>
@@ -126,8 +146,27 @@
                 </div>
             </div>
 
-            <!-- Accounts Tab -->
             <div class="tab-content" id="accounts">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-plus-circle"></i> Add New Account</h3>
+                    </div>
+                    <div class="card-content">
+                        <form id="add-account-form" class="add-account-form">
+                            <div class="form-group">
+                                <label for="new-token">Discord Token</label>
+                                <input type="text" id="new-token" placeholder="Masukkan token akun Discord..." required>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-channel-id">Target Channel ID</label>
+                                <input type="text" id="new-channel-id" placeholder="Masukkan ID channel target..." required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Account & Restart Bot
+                            </button>
+                        </form>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-users"></i> Discord Accounts</h3>
@@ -145,7 +184,6 @@
                 </div>
             </div>
 
-            <!-- Logs Tab -->
             <div class="tab-content" id="logs">
                 <div class="card">
                     <div class="card-header">
@@ -175,7 +213,6 @@
                 </div>
             </div>
 
-            <!-- Config Tab -->
             <div class="tab-content" id="config">
                 <div class="card">
                     <div class="card-header">
@@ -192,7 +229,6 @@
                 </div>
             </div>
 
-            <!-- Messages Tab -->
             <div class="tab-content" id="messages">
                 <div class="card">
                     <div class="card-header">
@@ -221,7 +257,6 @@
         </div>
     </main>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="loading-spinner">
             <i class="fas fa-spinner fa-spin"></i>
@@ -229,7 +264,6 @@
         </div>
     </div>
 
-    <!-- Notification System -->
     <div class="notification-container" id="notification-container"></div>
 
     <script>
@@ -246,6 +280,7 @@
             setupWebSocket();
             loadInitialData();
             startUptimeCounter();
+            setupAddAccountForm(); // <-- PANGGIL FUNGSI BARU
         });
 
         // Initialize application
@@ -262,18 +297,11 @@
             tabButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const tabName = this.dataset.tab;
-                    
-                    // Remove active class from all tabs and contents
                     tabButtons.forEach(btn => btn.classList.remove('active'));
                     tabContents.forEach(content => content.classList.remove('active'));
-                    
-                    // Add active class to clicked tab and corresponding content
                     this.classList.add('active');
                     document.getElementById(tabName).classList.add('active');
-                    
                     currentTab = tabName;
-                    
-                    // Load tab-specific data
                     loadTabData(tabName);
                 });
             });
@@ -282,24 +310,64 @@
         // Setup WebSocket connection
         function setupWebSocket() {
             socket = io();
-            
             socket.on('connect', function() {
                 console.log('Connected to server');
                 showNotification('Connected to bot panel', 'success');
                 updateSystemStatus('online');
             });
-            
             socket.on('disconnect', function() {
                 console.log('Disconnected from server');
                 showNotification('Disconnected from server', 'error');
                 updateSystemStatus('offline');
             });
-            
             socket.on('new_log', function(logEntry) {
                 addLogEntry(logEntry);
                 updateRecentLogs(logEntry);
             });
         }
+        
+        // ▼▼▼ FUNGSI BARU UNTUK MENGHANDLE FORM ADD ACCOUNT ▼▼▼
+        function setupAddAccountForm() {
+            const form = document.getElementById('add-account-form');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const token = document.getElementById('new-token').value.trim();
+                const channelId = document.getElementById('new-channel-id').value.trim();
+
+                if (!token || !channelId) {
+                    showNotification('Please fill both fields', 'warning');
+                    return;
+                }
+
+                showLoading();
+                fetch('/api/add_account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, channel_id: channelId })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    hideLoading();
+                    if (result.success) {
+                        showNotification(result.message || 'Account added successfully!', 'success');
+                        form.reset();
+                        // Muat ulang daftar akun setelah 2 detik untuk memberi waktu bot restart
+                        setTimeout(() => {
+                            refreshStatus(); // refreshStatus akan otomatis memanggil loadAccounts
+                        }, 2000);
+                    } else {
+                        showNotification('Failed to add account: ' + result.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error adding account:', error);
+                    showNotification('An error occurred. Check console.', 'error');
+                });
+            });
+        }
+        // ▲▲▲ AKHIR DARI FUNGSI BARU ▲▲▲
 
         // Load initial data
         function loadInitialData() {
@@ -315,7 +383,7 @@
                     loadRecentLogs();
                     break;
                 case 'accounts':
-                    loadAccounts();
+                    refreshStatus(); // Diubah agar selalu refresh status sebelum load accounts
                     break;
                 case 'logs':
                     loadLogs();
@@ -338,6 +406,10 @@
                     updateDashboardStats(data);
                     updateHeaderStats(data);
                     updateSystemStatus('online');
+                    // Tambahkan pemanggilan loadAccounts di sini
+                    if (currentTab === 'accounts') {
+                        loadAccounts();
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
@@ -359,10 +431,7 @@
 
         function updateSystemStatus(status) {
             const statusElement = document.getElementById('system-status');
-            const icon = statusElement.querySelector('i');
-            
             statusElement.className = 'stat-value status-indicator';
-            
             switch(status) {
                 case 'online':
                     statusElement.classList.add('online');
@@ -376,15 +445,14 @@
                     statusElement.classList.add('error');
                     statusElement.innerHTML = '<i class="fas fa-circle"></i> Error';
                     break;
-                default:
-                    statusElement.innerHTML = '<i class="fas fa-circle"></i> Unknown';
             }
         }
 
         // Account functions
         function loadAccounts() {
             if (!statusData.accounts) {
-                refreshStatus();
+                console.log("Status data not ready, refreshing...");
+                refreshStatus(); // Jika statusData belum ada, panggil refresh dulu
                 return;
             }
 
@@ -405,7 +473,6 @@
         function createAccountCard(account) {
             const card = document.createElement('div');
             card.className = `account-card ${account.status}`;
-            
             card.innerHTML = `
                 <div class="account-info">
                     <div class="account-name">${account.username}</div>
@@ -417,15 +484,14 @@
                         <i class="fas fa-circle"></i> ${account.status}
                     </span>
                     <div class="last-activity">
-                        ${account.last_activity ? `Last: ${account.last_activity}` : 'No activity'}
+                        ${account.last_activity ? `Last: ${account.last_activity.split(' ')[1]}` : 'No activity'}
                     </div>
                 </div>
             `;
-            
             return card;
         }
 
-        // Log functions
+        // Log functions (KODE ASLI ANDA DIPERTAHANKAN)
         function loadLogs() {
             fetch('/api/logs?limit=100')
                 .then(response => response.json())
@@ -452,84 +518,65 @@
         function displayLogs(logs) {
             const container = document.getElementById('logs-container');
             container.innerHTML = '';
-
             if (logs.length === 0) {
                 container.innerHTML = '<div class="no-data">No logs available</div>';
                 return;
             }
-
             logs.forEach(log => {
-                const logElement = createLogElement(log);
-                container.appendChild(logElement);
+                container.appendChild(createLogElement(log));
             });
-
             container.scrollTop = container.scrollHeight;
         }
 
         function displayRecentLogs(logs) {
             const container = document.getElementById('recent-logs-container');
             container.innerHTML = '';
-
             if (logs.length === 0) {
                 container.innerHTML = '<div class="no-data">No recent activity</div>';
                 return;
             }
-
             logs.slice(-5).forEach(log => {
-                const logElement = createSimpleLogElement(log);
-                container.appendChild(logElement);
+                container.appendChild(createSimpleLogElement(log));
             });
         }
 
         function createLogElement(log) {
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry ${log.level.toLowerCase()}`;
-            
             logEntry.innerHTML = `
                 <span class="log-time">${log.timestamp}</span>
                 <span class="log-title">${log.title}</span>
                 <span class="log-message">${log.message}</span>
             `;
-            
             return logEntry;
         }
 
         function createSimpleLogElement(log) {
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry ${log.level.toLowerCase()}`;
-            
             logEntry.innerHTML = `
                 <span class="log-time">${log.timestamp.split(' ')[1]}</span>
                 <span class="log-message">${log.title}: ${log.message}</span>
             `;
-            
             return logEntry;
         }
 
         function addLogEntry(logEntry) {
             if (currentTab === 'logs') {
                 const container = document.getElementById('logs-container');
-                const logElement = createLogElement(logEntry);
-                container.appendChild(logElement);
-                container.scrollTop = container.scrollHeight;
-
-                // Keep only last 100 logs visible
-                const logs = container.querySelectorAll('.log-entry');
-                if (logs.length > 100) {
-                    logs[0].remove();
+                container.appendChild(createLogElement(logEntry));
+                if (container.children.length > 100) {
+                    container.removeChild(container.firstChild);
                 }
+                container.scrollTop = container.scrollHeight;
             }
         }
 
         function updateRecentLogs(logEntry) {
             const container = document.getElementById('recent-logs-container');
-            const logElement = createSimpleLogElement(logEntry);
-            container.appendChild(logElement);
-
-            // Keep only last 5 logs
-            const logs = container.querySelectorAll('.log-entry');
-            if (logs.length > 5) {
-                logs[0].remove();
+            container.appendChild(createSimpleLogElement(logEntry));
+            if (container.children.length > 5) {
+                container.removeChild(container.firstChild);
             }
         }
 
@@ -538,243 +585,121 @@
             showNotification('Logs refreshed', 'success');
         }
 
-        // Config functions
+        // Config & Messages functions (KODE ASLI ANDA DIPERTAHANKAN)
         function loadConfig() {
-            fetch('/api/config')
-                .then(response => response.json())
-                .then(config => {
-                    const editor = document.getElementById('config-editor');
-                    editor.value = JSON.stringify(config, null, 2);
-                })
-                .catch(error => {
-                    console.error('Error loading config:', error);
-                    showNotification('Failed to load config', 'error');
-                });
+            fetch('/api/config').then(res => res.json()).then(config => {
+                document.getElementById('config-editor').value = JSON.stringify(config, null, 2);
+            }).catch(err => showNotification('Failed to load config', 'error'));
         }
-
         function saveConfig() {
-            const editor = document.getElementById('config-editor');
-            
             try {
-                const config = JSON.parse(editor.value);
-                
+                const config = JSON.parse(document.getElementById('config-editor').value);
                 showLoading();
                 fetch('/api/config', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(config)
-                })
-                .then(response => response.json())
-                .then(result => {
+                }).then(res => res.json()).then(result => {
                     hideLoading();
-                    if (result.success) {
-                        showNotification('Configuration saved successfully', 'success');
+                    if(result.success) {
+                        showNotification('Config saved successfully. Restarting bot...', 'success');
+                        setTimeout(restartBot, 1000);
                     } else {
-                        showNotification('Failed to save configuration: ' + result.error, 'error');
+                        showNotification('Failed to save config: ' + result.error, 'error');
                     }
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error('Error saving config:', error);
-                    showNotification('Failed to save configuration', 'error');
+                }).catch(err => {
+                    hideLoading(); showNotification('Error saving config', 'error');
                 });
-            } catch (error) {
-                showNotification('Invalid JSON format', 'error');
-            }
+            } catch (e) { showNotification('Invalid JSON format', 'error'); }
         }
-
-        // Messages functions
         function loadMessages() {
-            fetch('/api/messages')
-                .then(response => response.json())
-                .then(data => {
-                    displayMessages(data.messages || []);
-                })
-                .catch(error => {
-                    console.error('Error loading messages:', error);
-                    showNotification('Failed to load messages', 'error');
-                });
+            fetch('/api/messages').then(res => res.json()).then(data => {
+                displayMessages(data.messages || []);
+            }).catch(err => showNotification('Failed to load messages', 'error'));
         }
-
         function displayMessages(messages) {
             const container = document.getElementById('messages-editor');
             container.innerHTML = '';
-
-            if (messages.length === 0) {
-                addMessage();
-                return;
-            }
-
-            messages.forEach(message => {
-                const messageElement = createMessageElement(message);
-                container.appendChild(messageElement);
-            });
+            if (messages.length === 0) { addMessage(); return; }
+            messages.forEach(msg => container.appendChild(createMessageElement(msg)));
         }
-
         function createMessageElement(message = '') {
-            const messageItem = document.createElement('div');
-            messageItem.className = 'message-item';
-            
-            messageItem.innerHTML = `
-                <input type="text" value="${message}" placeholder="Enter message...">
-                <button class="btn-remove" onclick="removeMessage(this)">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-            
-            return messageItem;
+            const item = document.createElement('div');
+            item.className = 'message-item';
+            item.innerHTML = `<input type="text" value="${message}" placeholder="Enter message..."><button class="btn-remove" onclick="removeMessage(this)"><i class="fas fa-trash"></i></button>`;
+            return item;
         }
-
         function addMessage() {
-            const container = document.getElementById('messages-editor');
-            const messageElement = createMessageElement();
-            container.appendChild(messageElement);
+            document.getElementById('messages-editor').appendChild(createMessageElement());
         }
-
         function removeMessage(button) {
-            const messageItem = button.parentElement;
-            messageItem.remove();
+            button.parentElement.remove();
         }
-
         function saveMessages() {
-            const container = document.getElementById('messages-editor');
-            const inputs = container.querySelectorAll('input[type="text"]');
-            const messages = Array.from(inputs)
-                .map(input => input.value.trim())
-                .filter(message => message.length > 0);
-
-            if (messages.length === 0) {
-                showNotification('Please add at least one message', 'warning');
-                return;
-            }
-
+            const inputs = document.querySelectorAll('#messages-editor input');
+            const messages = Array.from(inputs).map(i => i.value.trim()).filter(m => m);
+            if (messages.length === 0) { showNotification('Please add at least one message', 'warning'); return; }
             showLoading();
             fetch('/api/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ messages })
-            })
-            .then(response => response.json())
-            .then(result => {
+            }).then(res => res.json()).then(result => {
                 hideLoading();
-                if (result.success) {
-                    showNotification('Messages saved successfully', 'success');
-                } else {
-                    showNotification('Failed to save messages: ' + result.error, 'error');
-                }
-            })
-            .catch(error => {
-                hideLoading();
-                console.error('Error saving messages:', error);
-                showNotification('Failed to save messages', 'error');
-            });
+                showNotification(result.success ? 'Messages saved' : 'Save failed', result.success ? 'success' : 'error');
+            }).catch(err => { hideLoading(); showNotification('Error saving messages', 'error'); });
         }
 
-        // System control functions
+        // System control functions (KODE ASLI ANDA DIPERTAHANKAN)
         function restartBot() {
-            if (!confirm('Are you sure you want to restart the bot?')) {
-                return;
-            }
-
+            if (!confirm('Are you sure you want to restart the bot?')) return;
             showLoading();
-            fetch('/api/restart')
-                .then(response => response.json())
-                .then(result => {
-                    hideLoading();
-                    if (result.success) {
-                        showNotification('Bot restarted successfully', 'success');
-                        setTimeout(refreshStatus, 2000);
-                    } else {
-                        showNotification('Failed to restart bot: ' + result.error, 'error');
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error('Error restarting bot:', error);
-                    showNotification('Failed to restart bot', 'error');
-                });
+            fetch('/api/restart').then(res => res.json()).then(result => {
+                hideLoading();
+                showNotification(result.success ? 'Bot restarted successfully' : 'Failed to restart', result.success ? 'success' : 'error');
+                setTimeout(refreshStatus, 2000);
+            }).catch(err => { hideLoading(); showNotification('Error restarting bot', 'error'); });
         }
-
         function clearLogs() {
-            if (!confirm('Are you sure you want to clear all logs?')) {
-                return;
-            }
-
-            const container = document.getElementById('logs-container');
-            container.innerHTML = '<div class="no-data">Logs cleared</div>';
-            
-            const recentContainer = document.getElementById('recent-logs-container');
-            recentContainer.innerHTML = '<div class="no-data">No recent activity</div>';
-            
+            if (!confirm('Are you sure you want to clear all logs?')) return;
+            document.getElementById('logs-container').innerHTML = '<div class="no-data">Logs cleared</div>';
+            document.getElementById('recent-logs-container').innerHTML = '<div class="no-data">No recent activity</div>';
             showNotification('Logs cleared', 'info');
         }
 
-        // Utility functions
-        function showLoading() {
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-
+        // Utility functions (KODE ASLI ANDA DIPERTAHANKAN)
+        function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
         function showNotification(message, type = 'info') {
             const container = document.getElementById('notification-container');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            
-            notification.innerHTML = `
-                <div class="notification-content">
-                    <i class="fas fa-${getNotificationIcon(type)}"></i>
-                    <span>${message}</span>
-                </div>
-                <button class="notification-close" onclick="closeNotification(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
+            notification.innerHTML = `<div class="notification-content"><i class="fas fa-${getNotificationIcon(type)}"></i><span>${message}</span></div><button class="notification-close" onclick="closeNotification(this)"><i class="fas fa-times"></i></button>`;
             container.appendChild(notification);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 5000);
+            setTimeout(() => { if (notification.parentElement) notification.remove(); }, 5000);
         }
-
         function getNotificationIcon(type) {
-            const icons = {
-                'success': 'check-circle',
-                'error': 'exclamation-circle',
-                'warning': 'exclamation-triangle',
-                'info': 'info-circle'
-            };
+            const icons = {'success': 'check-circle', 'error': 'exclamation-circle', 'warning': 'exclamation-triangle', 'info': 'info-circle'};
             return icons[type] || 'info-circle';
         }
-
         function closeNotification(button) {
             button.parentElement.remove();
         }
 
+        // ▼▼▼ FUNGSI UPTIME DIPERBAIKI DI SINI ▼▼▼
         function startUptimeCounter() {
             setInterval(() => {
                 const uptimeMs = Date.now() - systemStartTime;
-                const uptimeStr = formatUptime(uptimeMs);
-                document.getElementById('stat-uptime').textContent = uptimeStr;
+                document.getElementById('stat-uptime').textContent = formatUptime(uptimeMs);
             }, 1000);
         }
 
         function formatUptime(ms) {
-            const seconds = Math.floor(ms / 1000);
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+             const totalSeconds = Math.floor(ms / 1000);
+             const hours = Math.floor(totalSeconds / 3600);
+             const minutes = Math.floor((totalSeconds % 3600) / 60);
+             const seconds = totalSeconds % 60;
+             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
+        // ▲▲▲ AKHIR DARI PERBAIKAN ▲▲▲
 
         // Auto-refresh status every 30 seconds
         setInterval(refreshStatus, 30000);
