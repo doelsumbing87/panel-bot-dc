@@ -1,6 +1,7 @@
 ﻿# Discord Bot Control Panel
 
 A modern, responsive web-based control panel for managing and monitoring your Discord bots in real-time. This panel provides a user-friendly interface to handle configurations, view live activity, and manage bot accounts without needing direct server access.
+<img width="1325" height="791" alt="image" src="https://github.com/user-attachments/assets/d8fbecfd-908e-44bb-b9c5-89f8f75abc40" />
 
 ---
 
@@ -90,3 +91,4 @@ python app.py
 
 
 The web panel will be accessible at **http://localhost:5000** in your web browser.
+
