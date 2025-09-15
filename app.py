@@ -315,7 +315,7 @@ class ChannelHandler:
         self.is_running = False
         log_message(f"Handler Stopped", f"Channel: {self.channel_id} | Account: {self.account.username}", "WARNING")
     
-    # --- FUNGSI BARU UNTUK AUTO-DELETE ---
+  
     def _handle_auto_delete(self, sent_message: dict):
         """Menangani logika penghapusan pesan otomatis."""
         if not self.auto_delete_enabled or not sent_message:
@@ -331,7 +331,7 @@ class ChannelHandler:
             for msg_id in ids_to_delete:
                 if msg_id:
                     self.account.delete_message(self.channel_id, msg_id)
-                    time.sleep(1) # Jeda sedikit antar penghapusan untuk menghindari rate limit
+                    time.sleep(1) 
 
     def _start_local_chatter(self):
         def chatter_loop():
